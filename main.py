@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import ttk
 from storage import load_vault, save_vault
 from vault import Vault, VaultEntry
+from PIL import Image, ImageTk
+import os
 
 # Global state
 vault: Vault = None
@@ -14,33 +16,69 @@ root.geometry("1000x750")
 root.resizable(False, False)
 
 # Visual style
-PRIMARY_BG = "#2C2F3A"       # background
-PANEL_BG = "#3C3F4A"         # frame/popup background
-ACCENT = "#5DA399"           # buttons, highlights
-TEXT_COLOR = "#F0F0F0"       # general text
-SELECT_COLOR = "#78A083"
-
+PRIMARY_BG = "#2C2F3A"
+PANEL_BG = "#3C3F4A"
+ACCENT = "#3c3f4a"
+TEXT_COLOR = "#F0F0F0"
+SELECT_COLOR = "#5da399"
 style = ttk.Style(root)
 style.theme_use("clam")
 
+# Main frame
+style.configure("Custom.TFrame", background=PRIMARY_BG)
+
+# Labels
 style.configure("TLabel", font=("Segoe UI", 11), background=PRIMARY_BG, foreground=TEXT_COLOR)
-style.configure("TButton", font=("Segoe UI", 11), background=ACCENT, foreground="white")
+
+# Buttons
+style.configure("TButton",
+    font=("Segoe UI", 11),
+    background=ACCENT,
+    foreground="white",
+    borderwidth=0,
+    focuscolor=PRIMARY_BG,
+    relief="flat"
+)
 style.map("TButton",
     background=[("active", "#78A083")],
-    foreground=[("active", "white")]
+    foreground=[("active", "white")],
+    highlightcolor=[("focus", PRIMARY_BG)],
+    bordercolor=[("focus", PRIMARY_BG)]
 )
-style.configure("Treeview", rowheight=30, background="white", fieldbackground="white", foreground="black")
-style.configure("Treeview.Heading", font=("Segoe UI", 11, "bold"))
-style.map("Treeview", background=[("selected", SELECT_COLOR)])
 
-# Unlock screen
+# Treeview rows
+style.configure("Treeview",
+    rowheight=30,
+    background=PRIMARY_BG,
+    fieldbackground=PRIMARY_BG,
+    foreground=TEXT_COLOR,
+    borderwidth=0
+)
+
+# Treeview heading (column titles)
+style.configure("Treeview.Heading",
+    font=("Segoe UI", 11, "bold"),
+    background=PANEL_BG,
+    foreground=TEXT_COLOR,
+    relief="flat"
+)
+style.map("Treeview.Heading",
+    background=[("active", ACCENT)]
+)
+
+
+# Load logo image
+logo_path = os.path.join("Images", "SafePass_Logo.png")
+logo_image = Image.open(logo_path)
+logo_image = logo_image.resize((300, 300))
+logo_photo = ImageTk.PhotoImage(logo_image)
+
 def show_unlock_screen():
     def on_unlock():
         password = password_var.get()
         if not password:
             status_label.config(text="Please enter your master password.", foreground="red")
             return
-
         try:
             global vault, master_password
             vault = load_vault(password)
@@ -54,10 +92,10 @@ def show_unlock_screen():
         widget.destroy()
 
     root.configure(bg=PRIMARY_BG)
-    frame = ttk.Frame(root, padding=30)
+    frame = ttk.Frame(root, padding=20, style="Custom.TFrame")
     frame.pack(expand=True)
 
-    ttk.Label(frame, text="🔐 SafePass", font=("Segoe UI", 20, "bold")).pack(pady=(0, 20))
+    ttk.Label(frame, image=logo_photo).pack(pady=(0, 20))
     ttk.Label(frame, text="Enter your master password:").pack()
 
     password_var = tk.StringVar()
@@ -67,10 +105,10 @@ def show_unlock_screen():
 
     ttk.Button(frame, text="Unlock", command=on_unlock).pack(pady=10)
 
+    global status_label
     status_label = ttk.Label(frame, text="", foreground="red")
     status_label.pack(pady=(10, 0))
 
-# Vault screen
 def show_vault_screen():
     def refresh_table():
         for row in tree.get_children():
@@ -101,7 +139,8 @@ def show_vault_screen():
         add_win.configure(bg=PANEL_BG)
         add_win.grab_set()
 
-        def lbl(text): ttk.Label(add_win, text=text, background=PANEL_BG, foreground=TEXT_COLOR).pack(anchor="w", padx=10, pady=(8, 0))
+        def lbl(text):
+            ttk.Label(add_win, text=text, background=PANEL_BG, foreground=TEXT_COLOR).pack(anchor="w", padx=10, pady=(8, 0))
 
         site_var = tk.StringVar()
         user_var = tk.StringVar()
@@ -147,9 +186,8 @@ def show_vault_screen():
         edit_win.configure(bg=PANEL_BG)
         edit_win.grab_set()
 
-        def lbl(text): ttk.Label(edit_win, text=text, background=PANEL_BG, foreground=TEXT_COLOR).pack(anchor="w",
-                                                                                                       padx=10,
-                                                                                                       pady=(8, 0))
+        def lbl(text):
+            ttk.Label(edit_win, text=text, background=PANEL_BG, foreground=TEXT_COLOR).pack(anchor="w", padx=10, pady=(8, 0))
 
         site_var = tk.StringVar(value=entry.site)
         user_var = tk.StringVar(value=entry.username)
@@ -189,7 +227,7 @@ def show_vault_screen():
 
         view_win = tk.Toplevel(root)
         view_win.title("View Entry")
-        view_win.geometry("350x260")
+        view_win.geometry("700x520")
         view_win.configure(bg=PANEL_BG)
         view_win.grab_set()
 
@@ -229,10 +267,10 @@ def show_vault_screen():
 
     root.configure(bg=PRIMARY_BG)
 
-    frame = ttk.Frame(root, padding=20)
+    frame = ttk.Frame(root, padding=20, style="Custom.TFrame")
     frame.pack(fill="both", expand=True)
 
-    ttk.Label(frame, text="🔐 Your Vault", font=("Segoe UI", 16, "bold")).pack(pady=(0, 10))
+    ttk.Label(frame, text="Your Vault", font=("Segoe UI", 16, "bold")).pack(pady=(0, 10))
 
     columns = ("Site", "Username")
     tree = ttk.Treeview(frame, columns=columns, show="headings", height=10)
@@ -242,11 +280,12 @@ def show_vault_screen():
     tree.pack(fill="both", expand=True)
     tree.bind("<Double-1>", on_view_entry)
 
-    btn_row = ttk.Frame(frame)
+    btn_row = ttk.Frame(frame, style="Custom.TFrame")
     btn_row.pack(pady=10)
     ttk.Button(btn_row, text="➕ Add Entry", command=on_add_click).pack(side="left", padx=5)
     ttk.Button(btn_row, text="🗑 Delete Entry", command=on_delete_click).pack(side="left", padx=5)
     ttk.Button(btn_row, text="✏ Edit Entry", command=on_edit_click).pack(side="left", padx=5)
+
     status_label = ttk.Label(frame, text="", foreground=SELECT_COLOR)
     status_label.pack()
 
