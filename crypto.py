@@ -1,6 +1,6 @@
 import os #Allows access to os features (Used for generating random numbers used in the encryption
 import json
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC #Imports the key deriviation function that uses the salt and password to generate the encryption
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC #Imports the key derivation function that uses the salt and password to generate the encryption
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 

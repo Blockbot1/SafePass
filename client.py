@@ -1,6 +1,6 @@
-import socket
-import json
-from pathlib import Path
+import socket #For network handling
+import json #For sending headers to the server as strings
+from pathlib import Path #For file paths
 
 SERVER_HOST = "127.0.0.1"
 SERVER_PORT = 9090
@@ -10,7 +10,6 @@ def upload_vault(username: str):
     if not VAULT_FILE.exists():
         print("Vault file not found.")
         return
-
     data = VAULT_FILE.read_bytes()
     header = {
         "action": "upload",
