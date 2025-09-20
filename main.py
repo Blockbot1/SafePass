@@ -4,6 +4,9 @@ from storage import load_vault, save_vault
 from vault import Vault, VaultEntry
 from PIL import Image, ImageTk
 import os
+from Design import apply_theme, PRIMARY_BG, PANEL_BG, ACCENT, TEXT_COLOR, SELECT_COLOR, load_logo
+
+
 
 # Global state
 vault: Vault = None
@@ -15,63 +18,8 @@ root.title("SafePass")
 root.geometry("1000x750")
 root.resizable(False, False)
 
-# Visual style
-PRIMARY_BG = "#2C2F3A"
-PANEL_BG = "#3C3F4A"
-ACCENT = "#3c3f4a"
-TEXT_COLOR = "#F0F0F0"
-SELECT_COLOR = "#5da399"
-style = ttk.Style(root)
-style.theme_use("clam")
+style = apply_theme(root)
 
-# Main frame
-style.configure("Custom.TFrame", background=PRIMARY_BG)
-
-# Labels
-style.configure("TLabel", font=("Segoe UI", 11), background=PRIMARY_BG, foreground=TEXT_COLOR)
-
-# Buttons
-style.configure("TButton",
-    font=("Segoe UI", 11),
-    background=ACCENT,
-    foreground="white",
-    borderwidth=0,
-    focuscolor=PRIMARY_BG,
-    relief="flat"
-)
-style.map("TButton",
-    background=[("active", "#78A083")],
-    foreground=[("active", "white")],
-    highlightcolor=[("focus", PRIMARY_BG)],
-    bordercolor=[("focus", PRIMARY_BG)]
-)
-
-# Treeview rows
-style.configure("Treeview",
-    rowheight=30,
-    background=PRIMARY_BG,
-    fieldbackground=PRIMARY_BG,
-    foreground=TEXT_COLOR,
-    borderwidth=0
-)
-
-# Treeview heading (column titles)
-style.configure("Treeview.Heading",
-    font=("Segoe UI", 11, "bold"),
-    background=PANEL_BG,
-    foreground=TEXT_COLOR,
-    relief="flat"
-)
-style.map("Treeview.Heading",
-    background=[("active", ACCENT)]
-)
-
-
-# Load logo image
-logo_path = os.path.join("Images", "SafePass_Logo.png")
-logo_image = Image.open(logo_path)
-logo_image = logo_image.resize((300, 300))
-logo_photo = ImageTk.PhotoImage(logo_image)
 
 def show_unlock_screen():
     def on_unlock():
@@ -95,7 +43,9 @@ def show_unlock_screen():
     frame = ttk.Frame(root, padding=20, style="Custom.TFrame")
     frame.pack(expand=True)
 
+    logo_photo = load_logo()
     ttk.Label(frame, image=logo_photo).pack(pady=(0, 20))
+    frame.logo_ref = logo_photo
     ttk.Label(frame, text="Enter your master password:").pack()
 
     password_var = tk.StringVar()
