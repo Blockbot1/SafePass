@@ -53,7 +53,7 @@ def show_unlock_screen():
     password_entry = ttk.Entry(frame, textvariable=password_var, show="*")
     password_entry.pack(pady=8, ipadx=5)
     password_entry.focus()
-
+    password_entry.bind("<Return>", lambda event: on_unlock())
     ttk.Button(frame, text="Unlock", command=on_unlock).pack(pady=10)
 
     global status_label
@@ -220,9 +220,7 @@ def show_vault_screen():
 
     frame = ttk.Frame(root, padding=20, style="Custom.TFrame")
     frame.pack(fill="both", expand=True)
-
     ttk.Label(frame, text="Your Vault", font=("Segoe UI", 16, "bold")).pack(pady=(0, 10))
-
     columns = ("Site", "Username")
     tree = ttk.Treeview(frame, columns=columns, show="headings", height=10)
     for col in columns:

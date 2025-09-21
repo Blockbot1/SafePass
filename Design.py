@@ -5,11 +5,12 @@ import os
 
 
 # Color palette
-Background = "#2C2F3A"
-Window_Background = "#421C10"
-Button = "#6F732F"
-TEXT_COLOR = "#F0F0F0"
-SELECT_COLOR = "#78A083"
+Background = "#040D12"
+Window_Background = "#040D12"
+Button = "#183D3D"
+Table_Header="#183D3D"
+TEXT_COLOR = "#F0F1C5"
+SELECT_COLOR = "#5C8374"
 
 def apply_theme(root):
     style = ttk.Style(root)
@@ -44,18 +45,18 @@ def apply_theme(root):
 
     style.configure("Treeview.Heading",
         font=("Segoe UI", 11, "bold"),
-        background=Window_Background,
+        background=Table_Header,
         foreground=TEXT_COLOR,
         relief="flat"
     )
     style.map("Treeview.Heading",
-        background=[("active", Button)]
+        background=[("active", Table_Header)]
     )
 
     return style
 
 # Export theme constants
-__all__ = ["apply_theme", "Background", "Window_Background", "Button", "TEXT_COLOR", "SELECT_COLOR"]
+__all__ = ["apply_theme", "Background", "Window_Background", "Button", "Table_Header", "TEXT_COLOR", "SELECT_COLOR"]
 
 
 
