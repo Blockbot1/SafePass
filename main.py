@@ -4,7 +4,7 @@ from storage import load_vault, save_vault
 from vault import Vault, VaultEntry
 from PIL import Image, ImageTk
 import os
-from Design import apply_theme, PRIMARY_BG, PANEL_BG, ACCENT, TEXT_COLOR, SELECT_COLOR, load_logo
+from Design import apply_theme, Background, Window_Background, Button, TEXT_COLOR, SELECT_COLOR, load_logo
 
 
 
@@ -16,6 +16,7 @@ master_password: str = ""
 root = tk.Tk()
 root.title("SafePass")
 root.geometry("1000x750")
+root.state('zoomed')
 root.resizable(False, False)
 
 style = apply_theme(root)
@@ -39,7 +40,7 @@ def show_unlock_screen():
     for widget in root.winfo_children():
         widget.destroy()
 
-    root.configure(bg=PRIMARY_BG)
+    root.configure(bg=Background)
     frame = ttk.Frame(root, padding=20, style="Custom.TFrame")
     frame.pack(expand=True)
 
@@ -86,11 +87,11 @@ def show_vault_screen():
         add_win = tk.Toplevel(root)
         add_win.title("Add Entry")
         add_win.geometry("320x280")
-        add_win.configure(bg=PANEL_BG)
+        add_win.configure(bg=Window_Background)
         add_win.grab_set()
 
         def lbl(text):
-            ttk.Label(add_win, text=text, background=PANEL_BG, foreground=TEXT_COLOR).pack(anchor="w", padx=10, pady=(8, 0))
+            ttk.Label(add_win, text=text, background=Window_Background, foreground=TEXT_COLOR).pack(anchor="w", padx=10, pady=(8, 0))
 
         site_var = tk.StringVar()
         user_var = tk.StringVar()
@@ -133,11 +134,11 @@ def show_vault_screen():
         edit_win = tk.Toplevel(root)
         edit_win.title("Edit Entry")
         edit_win.geometry("320x280")
-        edit_win.configure(bg=PANEL_BG)
+        edit_win.configure(bg=Window_Background)
         edit_win.grab_set()
 
         def lbl(text):
-            ttk.Label(edit_win, text=text, background=PANEL_BG, foreground=TEXT_COLOR).pack(anchor="w", padx=10, pady=(8, 0))
+            ttk.Label(edit_win, text=text, background=Window_Background, foreground=TEXT_COLOR).pack(anchor="w", padx=10, pady=(8, 0))
 
         site_var = tk.StringVar(value=entry.site)
         user_var = tk.StringVar(value=entry.username)
@@ -178,21 +179,21 @@ def show_vault_screen():
         view_win = tk.Toplevel(root)
         view_win.title("View Entry")
         view_win.geometry("700x520")
-        view_win.configure(bg=PANEL_BG)
+        view_win.configure(bg=Window_Background)
         view_win.grab_set()
 
         def lbl(text):
-            ttk.Label(view_win, text=text, background=PANEL_BG, foreground=TEXT_COLOR, font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=10, pady=(10, 0))
+            ttk.Label(view_win, text=text, background=Window_Background, foreground=TEXT_COLOR, font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=10, pady=(10, 0))
 
         lbl("Site:")
-        ttk.Label(view_win, text=entry.site, background=PANEL_BG, foreground=TEXT_COLOR).pack(anchor="w", padx=10)
+        ttk.Label(view_win, text=entry.site, background=Window_Background, foreground=TEXT_COLOR).pack(anchor="w", padx=10)
 
         lbl("Username:")
-        ttk.Label(view_win, text=entry.username, background=PANEL_BG, foreground=TEXT_COLOR).pack(anchor="w", padx=10)
+        ttk.Label(view_win, text=entry.username, background=Window_Background, foreground=TEXT_COLOR).pack(anchor="w", padx=10)
 
         lbl("Password:")
         password_var = tk.StringVar(value="*" * len(entry.password))
-        password_label = ttk.Label(view_win, textvariable=password_var, background=PANEL_BG, foreground=TEXT_COLOR)
+        password_label = ttk.Label(view_win, textvariable=password_var, background=Window_Background, foreground=TEXT_COLOR)
         password_label.pack(anchor="w", padx=10)
 
         def toggle_password():
@@ -215,7 +216,7 @@ def show_vault_screen():
     for widget in root.winfo_children():
         widget.destroy()
 
-    root.configure(bg=PRIMARY_BG)
+    root.configure(bg=Background)
 
     frame = ttk.Frame(root, padding=20, style="Custom.TFrame")
     frame.pack(fill="both", expand=True)
