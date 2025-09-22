@@ -8,14 +8,13 @@ from Design import apply_theme, Background, Window_Background, Button, TEXT_COLO
 
 
 
-# Global state
 vault: Vault = None
 master_password: str = ""
 
 # Create main window
 root = tk.Tk()
 root.title("SafePass")
-root.geometry("1000x750")
+root.attributes('-fullscreen', True)
 root.state('zoomed')
 root.resizable(False, False)
 

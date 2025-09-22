@@ -2,13 +2,11 @@ import socket
 import threading
 import json
 from pathlib import Path
-
-# Folder to store encrypted vaults
 VAULTS_DIR = Path("vault_sync_storage")
 VAULTS_DIR.mkdir(exist_ok=True)
 
-HOST = "0.0.0.0"  # Listen on all interfaces
-PORT = 9090       # Change if needed
+HOST = "0.0.0.0"
+PORT = 9090
 
 def handle_client(conn, addr):
     try:
