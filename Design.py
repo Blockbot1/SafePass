@@ -1,8 +1,5 @@
-import tkinter as tk
 from tkinter import ttk
 from PIL import Image, ImageTk
-import os
-
 
 # Color palette
 Background = "#040D12"

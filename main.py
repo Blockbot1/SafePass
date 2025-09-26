@@ -2,13 +2,11 @@ import tkinter as tk
 from tkinter import ttk
 from storage import load_vault, save_vault
 from vault import Vault, VaultEntry
-from PIL import Image, ImageTk
-import os
 from Design import apply_theme, Background, Window_Background, Button, TEXT_COLOR, SELECT_COLOR, load_logo
 
 
 
-vault: Vault = None
+vault: Vault
 master_password: str = ""
 
 # Create main window

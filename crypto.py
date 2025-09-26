@@ -22,7 +22,6 @@ def encrypt(master_password: str, plaintext: bytes) -> bytes:
     key = derive_key(master_password, salt)
     aes = AESGCM(key)
     ciphertext = aes.encrypt(nonce, plaintext, associated_data=None)
-
     blob = {
         "salt": salt.hex(),
         "nonce": nonce.hex(),
@@ -40,3 +39,5 @@ def decrypt(master_password: str, blob_bytes: bytes) -> bytes:
     key = derive_key(master_password, salt)
     aes = AESGCM(key)
     return aes.decrypt(nonce, ciphertext, associated_data=None)
+
+
