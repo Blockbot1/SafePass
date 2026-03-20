@@ -2,7 +2,7 @@ import socket #For network handling
 import json #For sending headers to the server as strings
 from pathlib import Path #For file paths
 
-SERVER_HOST = "127.0.0.1"
+SERVER_HOST = "10.0.0.1"
 SERVER_PORT = 9090
 VAULT_FILE = Path("safepass.vault")
 

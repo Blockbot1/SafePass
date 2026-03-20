@@ -5,7 +5,7 @@ from pathlib import Path
 VAULTS_DIR = Path("vault_sync_storage")
 VAULTS_DIR.mkdir(exist_ok=True)
 
-HOST = "0.0.0.0"
+HOST = "10.0.0.1"
 PORT = 9090
 
 def handle_client(conn, addr):

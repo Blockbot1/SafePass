@@ -104,10 +104,46 @@ class SafePassApp:
             self.tree.insert("", "end", values=(entry.site, getattr(entry, 'username', 'N/A')))
 
     def add_entry_window(self):
-        # Simplified for brevity: You would open a Toplevel window here
-        # and create a new PasswordEntry object.
-        pass
+        """Opens a top-level window to create a new PasswordEntry."""
+        add_win = tk.Toplevel(self.root)
+        add_win.title("Add New Entry")
+        add_win.geometry("400x500")
+        add_win.configure(bg=Background)
 
+        # Helper to create labels and entries
+        def create_field(label_text):
+            ttk.Label(add_win, text=label_text).pack(pady=(10, 0))
+            entry = ttk.Entry(add_win, width=35)
+            entry.pack(pady=5)
+            return entry
+
+        site_ent = create_field("Website/Service Name:")
+        user_ent = create_field("Username:")
+        pass_ent = create_field("Password:")
+        notes_ent = create_field("Notes (Optional):")
+
+        def save_new_entry():
+            site = site_ent.get()
+            if not site:
+                messagebox.showerror("Error", "Site name is required!")
+                return
+
+            # Create the object using our new Inheritance-based class
+            new_entry = PasswordEntry(
+                site=site,
+                username=user_ent.get(),
+                password=pass_ent.get(),
+                notes=notes_ent.get()
+            )
+
+            self.vault.add_entry(new_entry)
+            save_vault(self.master_password, self.vault)  # Save to local file
+            self.refresh_tree()  # Update the UI table
+            add_win.destroy()
+            messagebox.showinfo("Success", f"Entry for {site} added!")
+
+        ttk.Button(add_win, text="Save Entry", command=save_new_entry).pack(pady=20)
+        ttk.Button(add_win, text="Cancel", command=add_win.destroy).pack()
     def delete_selected(self):
         selected = self.tree.selection()
         if not selected: return
