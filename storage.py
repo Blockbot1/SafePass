@@ -1,20 +1,27 @@
 from pathlib import Path
-from vault import Vault, VaultEntry
+from vault import Vault, BaseEntry, PasswordEntry  # Updated imports
 from crypto import encrypt, decrypt
 import json
 
 VAULT_FILE = Path("safepass.vault")
 
+
 def save_vault(master_password: str, vault: Vault):
-    # Convert entries to list of dictionaries
-    data = [entry.__dict__ for entry in vault.get_all_entries()]
+    data = []
+    for entry in vault.get_all_entries():
+        # Convert entry to dict and add a 'type' field to identify the class
+        entry_dict = entry.__dict__.copy()
+        entry_dict["type"] = entry.__class__.__name__
+        data.append(entry_dict)
+
     json_bytes = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
     encrypted = encrypt(master_password, json_bytes)
     VAULT_FILE.write_bytes(encrypted)
 
+
 def load_vault(master_password: str) -> Vault:
     if not VAULT_FILE.exists():
-        return Vault()  # Empty vault if no file yet
+        return Vault()
 
     encrypted = VAULT_FILE.read_bytes()
     decrypted = decrypt(master_password, encrypted)
@@ -22,5 +29,12 @@ def load_vault(master_password: str) -> Vault:
 
     vault = Vault()
     for item in entries_data:
-        vault.add_entry(VaultEntry(**item))
+        # Determine which class to instantiate based on the saved 'type'
+        entry_type = item.pop("type", "PasswordEntry")
+
+        if entry_type == "PasswordEntry":
+            vault.add_entry(PasswordEntry(**item))
+        else:
+            vault.add_entry(BaseEntry(**item))
+
     return vault
