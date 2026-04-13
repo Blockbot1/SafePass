@@ -1,116 +1,172 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from storage import load_vault, save_vault
+import storage
 from vault import Vault, PasswordEntry
-from Design import apply_theme, Background, TEXT_COLOR, load_logo
-from client import upload_vault, download_vault
-
+from Design import apply_theme, Background
+import client
 
 class SafePassApp:
-    """
-    The Main Application Class.
-    Encapsulates the entire UI logic and state (Vault and Password).
-    This fulfills the 'User-Defined Class' and 'Encapsulation' requirements.
-    """
-
     def __init__(self, root):
         self.root = root
         self.root.title("SafePass")
-        self.root.attributes('-fullscreen', True)
         self.root.state('zoomed')
-
-        self.vault = None
+        self.current_user = ""
         self.master_password = ""
-
-        # Apply the theme from Design.py
-        self.style = apply_theme(self.root)
-
-        # Start with the unlock screen
-        self.show_unlock_screen()
+        self.vault = None
+        apply_theme(self.root)
+        self.show_login_screen()
 
     def clear_screen(self):
-        """Helper to remove all widgets when switching screens."""
-        for widget in self.root.winfo_children():
-            widget.destroy()
+        for widget in self.root.winfo_children(): widget.destroy()
 
-    def show_unlock_screen(self):
+    def show_login_screen(self):
         self.clear_screen()
-        self.root.configure(bg=Background)
+        self.root.configure(bg=Background)  # Fixes the "white background" issue
 
-        frame = ttk.Frame(self.root, padding=20, style="Custom.TFrame")
-        frame.pack(expand=True)
+        # Main container that fills the whole screen
+        self.main_frame = ttk.Frame(self.root, style="Custom.TFrame")
+        self.main_frame.pack(expand=True, fill="both")
 
-        # Logo
-        try:
-            self.logo_photo = load_logo()
-            ttk.Label(frame, image=self.logo_photo, background=Background).pack(pady=10)
-        except:
-            ttk.Label(frame, text="SafePass", font=("Segoe UI", 24, "bold")).pack(pady=10)
+        # Center login box
+        login_box = ttk.Frame(self.main_frame, padding=40, style="Custom.TFrame")
+        login_box.place(relx=0.5, rely=0.5, anchor="center")
 
-        ttk.Label(frame, text="Enter Master Password:").pack(pady=5)
+        ttk.Label(login_box, text="SafePass Login", font=("Segoe UI", 24, "bold")).pack(pady=20)
 
-        pass_var = tk.StringVar()
-        entry = ttk.Entry(frame, textvariable=pass_var, show="*", width=30)
-        entry.pack(pady=5)
-        entry.focus()
+        ttk.Label(login_box, text="Username").pack(anchor="w")
+        u_ent = ttk.Entry(login_box, width=30)
+        u_ent.pack(pady=(0, 15))
 
-        status_label = ttk.Label(frame, text="")
-        status_label.pack(pady=5)
+        ttk.Label(login_box, text="Master Password").pack(anchor="w")
+        p_ent = ttk.Entry(login_box, show="*", width=30)
+        p_ent.pack(pady=(0, 20))
 
-        def handle_unlock():
-            pwd = pass_var.get()
-            try:
-                self.vault = load_vault(pwd)
+        def do_login():
+            user = u_ent.get()
+            pwd = p_ent.get()
+            if not user or not pwd:
+                messagebox.showwarning("Input Error", "Please fill in all fields")
+                return
+
+            # 1. Ask server if credentials are correct
+            res = client.server_request("login", user, pwd)
+            if res == "SUCCESS":
+                self.current_user = user
                 self.master_password = pwd
-                self.show_vault_screen()
-            except Exception:
-                status_label.config(text="Invalid Password", foreground="red")
 
-        ttk.Button(frame, text="Unlock Vault", command=handle_unlock).pack(pady=10)
-        ttk.Button(frame, text="Exit", command=self.root.quit).pack(pady=5)
+                # 2. Download the vault blob
+                data = client.server_request("download", user)
+                if data:
+                    storage.save_vault_raw(user, data)
+
+                # 3. Try to load the vault locally
+                try:
+                    self.vault = storage.load_vault(user, pwd)
+                    self.show_vault_screen()
+                except Exception as e:
+                    messagebox.showerror("Vault Error", f"Could not decrypt vault: {e}")
+            else:
+                messagebox.showerror("Login Failed", "Invalid username or password.")
+
+        def do_register():
+            user = u_ent.get()
+            pwd = p_ent.get()
+            if not user or not pwd:
+                messagebox.showwarning("Input Error", "Please fill in all fields")
+                return
+
+            res = client.server_request("register", user, pwd)
+            if res == "SUCCESS":
+                messagebox.showinfo("Success", "Account created! You can now login.")
+            elif res == "EXISTS":
+                messagebox.showerror("Error", "Username already exists.")
+            else:
+                messagebox.showerror("Error", "Could not connect to server.")
+
+        ttk.Button(login_box, text="Login", width=20, command=do_login).pack(pady=5)
+        ttk.Button(login_box, text="Register", width=20, command=do_register).pack(pady=5)
 
     def show_vault_screen(self):
         self.clear_screen()
+        self.root.configure(bg=Background)
 
+        # UI for the vault
         frame = ttk.Frame(self.root, padding=20, style="Custom.TFrame")
         frame.pack(fill="both", expand=True)
 
-        ttk.Label(frame, text="Your Vault", font=("Segoe UI", 16, "bold")).pack(pady=10)
+        ttk.Label(frame, text=f"Welcome, {self.current_user}", font=("Segoe UI", 14)).pack(pady=10)
 
-        # Table (Treeview)
-        columns = ("Site", "Username")
-        self.tree = ttk.Treeview(frame, columns=columns, show="headings", height=10)
-        for col in columns:
-            self.tree.heading(col, text=col)
-            self.tree.column(col, width=200)
-        self.tree.pack(fill="both", expand=True)
+        # The Table
+        columns = ("Site", "User")
+        self.tree = ttk.Treeview(frame, columns=columns, show="headings", height=15)
+        self.tree.heading("Site", text="Website / Service")
+        self.tree.heading("User", text="Username")
+        self.tree.pack(fill="both", expand=True, pady=20)
+
+        # Binding double-click to view password
+        self.tree.bind("<Double-1>", lambda e: self.show_password_detail())
+
+        btn_frame = ttk.Frame(frame, style="Custom.TFrame")
+        btn_frame.pack(fill="x")
+        # Add this line along with your other buttons in show_vault_screen
+        ttk.Button(btn_frame, text="🗑 Delete Entry", command=self.delete_entry).pack(side="left", padx=5)
+        ttk.Button(btn_frame, text="+ Add Entry", command=self.add_entry_window).pack(side="left", padx=5)
+        ttk.Button(btn_frame, text="👁 Show Password", command=self.show_password_detail).pack(side="left", padx=5)
+        ttk.Button(btn_frame, text="🔄 Sync to Cloud", command=self.sync_vault).pack(side="left", padx=5)
+        ttk.Button(btn_frame, text="Logout", command=self.show_login_screen).pack(side="right", padx=5)
 
         self.refresh_tree()
 
-        # Buttons
-        btn_frame = ttk.Frame(frame, style="Custom.TFrame")
-        btn_frame.pack(pady=10)
+    def delete_entry(self):
+        selected = self.tree.selection()
+        if not selected:
+            messagebox.showwarning("Selection Error", "Please select an entry to delete.")
+            return
 
-        ttk.Button(btn_frame, text="Add Entry", command=self.add_entry_window).pack(side="left", padx=5)
-        ttk.Button(btn_frame, text="Delete", command=self.delete_selected).pack(side="left", padx=5)
-        ttk.Button(btn_frame, text="Sync (Upload)", command=lambda: upload_vault("user1")).pack(side="left", padx=5)
-        ttk.Button(btn_frame, text="Lock", command=self.show_unlock_screen).pack(side="left", padx=5)
+        # Ask for confirmation
+        if not messagebox.askyesno("Confirm Delete", "Are you sure you want to delete this entry?"):
+            return
 
+        # Get index and remove from vault object
+        idx = self.tree.index(selected[0])
+        self.vault.remove_entry(idx)
+
+        # Save the change locally
+        storage.save_vault(self.current_user, self.master_password, self.vault)
+
+        # Refresh the UI
+        self.refresh_tree()
+        messagebox.showinfo("Success", "Entry deleted locally. Sync to update the cloud!")
     def refresh_tree(self):
-        for item in self.tree.get_children():
-            self.tree.delete(item)
+        for i in self.tree.get_children(): self.tree.delete(i)
         for entry in self.vault.get_all_entries():
-            # Polymorphism: using the method defined in our vault classes
-            self.tree.insert("", "end", values=(entry.site, getattr(entry, 'username', 'N/A')))
+            self.tree.insert("", "end", values=(entry.site, entry.username))
+
+    def show_password_detail(self):
+        selected = self.tree.selection()
+        if not selected: return
+        idx = self.tree.index(selected[0])
+        entry = self.vault.get_all_entries()[idx]
+        messagebox.showinfo("Details", f"Site: {entry.site}\nUser: {entry.username}\nPass: {entry.password}\nNotes: {entry.notes}")
+
+    def sync_vault(self):
+        # Encrypt and send to server
+        storage.save_vault(self.current_user, self.master_password, self.vault)
+        path = Path(f"{self.current_user}.vault")
+        res = client.server_request("upload", self.current_user, data=path.read_bytes())
+        if res == "OK": messagebox.showinfo("Sync", "Vault Uploaded!")
 
     def add_entry_window(self):
-        """Opens a top-level window to create a new PasswordEntry."""
+        # Implementation similar to your old code, but calling self.vault.add_entry
+        # and then storage.save_vault(self.current_user, ...)
+        pass # (Omitted for brevity, but use your original add_win logic)
+
+    def add_entry_window(self):
         add_win = tk.Toplevel(self.root)
         add_win.title("Add New Entry")
         add_win.geometry("400x500")
         add_win.configure(bg=Background)
 
-        # Helper to create labels and entries
         def create_field(label_text):
             ttk.Label(add_win, text=label_text).pack(pady=(10, 0))
             entry = ttk.Entry(add_win, width=35)
@@ -128,7 +184,6 @@ class SafePassApp:
                 messagebox.showerror("Error", "Site name is required!")
                 return
 
-            # Create the object using our new Inheritance-based class
             new_entry = PasswordEntry(
                 site=site,
                 username=user_ent.get(),
@@ -137,22 +192,14 @@ class SafePassApp:
             )
 
             self.vault.add_entry(new_entry)
-            save_vault(self.master_password, self.vault)  # Save to local file
-            self.refresh_tree()  # Update the UI table
+            # Save to local file using the new storage logic
+            storage.save_vault(self.current_user, self.master_password, self.vault)
+            self.refresh_tree()
             add_win.destroy()
-            messagebox.showinfo("Success", f"Entry for {site} added!")
+            messagebox.showinfo("Success", f"Entry for {site} added locally. Don't forget to Sync!")
 
         ttk.Button(add_win, text="Save Entry", command=save_new_entry).pack(pady=20)
         ttk.Button(add_win, text="Cancel", command=add_win.destroy).pack()
-    def delete_selected(self):
-        selected = self.tree.selection()
-        if not selected: return
-        index = self.tree.index(selected[0])
-        self.vault.remove_entry(index)
-        save_vault(self.master_password, self.vault)
-        self.refresh_tree()
-
-
 if __name__ == "__main__":
     root = tk.Tk()
     app = SafePassApp(root)

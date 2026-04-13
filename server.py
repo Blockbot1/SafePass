@@ -1,63 +1,85 @@
 import socket
 import threading
 import json
+import sqlite3
+import hashlib
 from pathlib import Path
+
 VAULTS_DIR = Path("vault_sync_storage")
 VAULTS_DIR.mkdir(exist_ok=True)
-
-HOST = "10.0.0.1"
+DB_PATH = "users.db"
+HOST = "127.0.0.1"
 PORT = 9090
+
+
+def init_db():
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password_hash TEXT)")
+
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
 
 def handle_client(conn, addr):
     try:
         with conn:
-            print(f"[+] Connected: {addr}")
+            header_data = conn.recv(4096).decode("utf-8")
+            if not header_data: return
+            request = json.loads(header_data)
+            action = request.get("action")
+            username = request.get("user")
+            pwd = request.get("password")
 
-            header = conn.recv(4096).decode("utf-8")
-            data = json.loads(header)
-            action = data.get("action")
-            username = data.get("user")
+            with sqlite3.connect(DB_PATH) as db:
+                cursor = db.cursor()
 
-            if not username:
-                conn.sendall(b"Missing username")
-                return
+                if action == "register":
+                    try:
+                        cursor.execute("INSERT INTO users VALUES (?, ?)", (username, hash_password(pwd)))
+                        db.commit()
+                        # Create empty vault file for new user
+                        (VAULTS_DIR / f"{username}.vault").write_bytes(b"")
+                        conn.sendall(b"SUCCESS")
+                    except sqlite3.IntegrityError:
+                        conn.sendall(b"EXISTS")
 
-            user_file = VAULTS_DIR / f"{username}.vault"
+                elif action == "login":
+                    cursor.execute("SELECT password_hash FROM users WHERE username=?", (username,))
+                    row = cursor.fetchone()
+                    if row and row[0] == hash_password(pwd):
+                        conn.sendall(b"SUCCESS")
+                    else:
+                        conn.sendall(b"FAIL")
 
-            if action == "upload":
-                size = int(data.get("size", 0))
-                received = b""
-                while len(received) < size:
-                    chunk = conn.recv(min(4096, size - len(received)))
-                    if not chunk:
-                        break
-                    received += chunk
-                user_file.write_bytes(received)
-                conn.sendall(b"OK")
+                elif action == "upload":
+                    size = int(request.get("size", 0))
+                    received = b""
+                    while len(received) < size:
+                        chunk = conn.recv(min(4096, size - len(received)))
+                        if not chunk: break
+                        received += chunk
+                    (VAULTS_DIR / f"{username}.vault").write_bytes(received)
+                    conn.sendall(b"OK")
 
-            elif action == "download":
-                if not user_file.exists():
-                    conn.sendall(b"0\n")
-                    return
-                data = user_file.read_bytes()
-                conn.sendall(f"{len(data)}\n".encode("utf-8"))
-                conn.sendall(data)
-
-            else:
-                conn.sendall(b"Unknown action")
-
+                elif action == "download":
+                    user_file = VAULTS_DIR / f"{username}.vault"
+                    if not user_file.exists():
+                        conn.sendall(b"0\n")
+                    else:
+                        data = user_file.read_bytes()
+                        conn.sendall(f"{len(data)}\n".encode("utf-8"))
+                        conn.sendall(data)
     except Exception as e:
-        print(f"[!] Error with {addr}: {e}")
+        print(f"Error: {e}")
 
-def start_server():
-    print(f"[*] Server starting on port {PORT}...")
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
-        server.bind((HOST, PORT))
-        server.listen()
-
-        while True:
-            conn, addr = server.accept()
-            threading.Thread(target=handle_client, args=(conn, addr), daemon=True).start()
 
 if __name__ == "__main__":
-    start_server()
+    init_db()
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind((HOST, PORT))
+    server.listen()
+    print(f"Server listening on {HOST}:{PORT}")
+    while True:
+        c, a = server.accept()
+        threading.Thread(target=handle_client, args=(c, a), daemon=True).start()
