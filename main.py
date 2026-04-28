@@ -149,6 +149,29 @@ class SafePassApp:
         entry = self.vault.get_all_entries()[idx]
         messagebox.showinfo("Details", f"Site: {entry.site}\nUser: {entry.username}\nPass: {entry.password}\nNotes: {entry.notes}")
 
+    # בתוך הקובץ שבו נמצא ה-GUI (למשל Design.py)
+
+    def sync_button_clicked(self):
+        try:
+            # שלב א': תקשורת מול השרת
+            # כאן אנחנו פונים למחלקת התקשורת שתבצע את העלאת/הורדת הקובץ
+            status = self.network_client.sync_vault_with_server()
+
+            if status:
+                # שלב ב': טעינה מחדש של הנתונים מהדיסק לזיכרון
+                # לאחר שהקובץ החדש ירד מהשרת, צריך "לקרוא" אותו שוב
+                self.vault_manager.load_vault()
+
+                # שלב ג': רענון הטבלה בממשק הגרפי
+                # זו הפונקציה שמוחקת את השורות הישנות ומציגה את החדשות
+                self.refresh_table()
+
+                print("Sync complete: Local vault is now up to date.")
+            else:
+                print("Sync failed: Could not reach the server.")
+
+        except Exception as e:
+            print(f"Error during sync: {e}")
     def sync_vault(self):
         # Encrypt and send to server
         storage.save_vault(self.current_user, self.master_password, self.vault)

@@ -8,7 +8,7 @@ from pathlib import Path
 VAULTS_DIR = Path("vault_sync_storage")
 VAULTS_DIR.mkdir(exist_ok=True)
 DB_PATH = "users.db"
-HOST = "127.0.0.1"
+HOST = "0.0.0.0"
 PORT = 9090
 
 
