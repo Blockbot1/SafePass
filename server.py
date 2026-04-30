@@ -73,7 +73,7 @@ def handle_client(conn, addr):
 
                             received += chunk
 
-                        # Ensure the directory exists right before writing
+                        # Ensure the directory exists right before writing test
 
                         VAULTS_DIR.mkdir(exist_ok=True)
 
