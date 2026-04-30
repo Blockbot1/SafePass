@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import storage
+from pathlib import Path
 from vault import Vault, PasswordEntry
 from Design import apply_theme, Background
 import client
@@ -113,7 +114,9 @@ class SafePassApp:
         ttk.Button(btn_frame, text="+ Add Entry", command=self.add_entry_window).pack(side="left", padx=5)
         ttk.Button(btn_frame, text="👁 Show Password", command=self.show_password_detail).pack(side="left", padx=5)
         ttk.Button(btn_frame, text="🔄 Sync to Cloud", command=self.sync_vault).pack(side="left", padx=5)
+        ttk.Button(btn_frame, text="📥 Pull Changes", command=self.refresh_vault).pack(side="left", padx=5)
         ttk.Button(btn_frame, text="Logout", command=self.show_login_screen).pack(side="right", padx=5)
+
 
         self.refresh_tree()
 
@@ -172,12 +175,44 @@ class SafePassApp:
 
         except Exception as e:
             print(f"Error during sync: {e}")
+
     def sync_vault(self):
-        # Encrypt and send to server
-        storage.save_vault(self.current_user, self.master_password, self.vault)
-        path = Path(f"{self.current_user}.vault")
-        res = client.server_request("upload", self.current_user, data=path.read_bytes())
-        if res == "OK": messagebox.showinfo("Sync", "Vault Uploaded!")
+        """Uploads the current local state to the server."""
+        try:
+            # 1. Save current memory state to local disk first
+            storage.save_vault(self.current_user, self.master_password, self.vault)
+
+            # 2. Read those bytes and upload
+            user_path = Path(f"{self.current_user}.vault")
+            if user_path.exists():
+                res = client.server_request("upload", self.current_user, self.master_password,
+                                            data=user_path.read_bytes())
+                if res == "OK":
+                    messagebox.showinfo("Sync", "Vault uploaded to cloud successfully!")
+                else:
+                    messagebox.showerror("Sync Error", "Server failed to save the vault.")
+        except Exception as e:
+            messagebox.showerror("Sync Error", f"Failed to upload: {e}")
+
+    def refresh_vault(self):
+        """Downloads the latest version from server and RE-LOADS the UI."""
+        try:
+            # 1. Download the latest blob from server
+            data = client.server_request("download", self.current_user)
+            if data:
+                # 2. Overwrite the local file with the server's version
+                storage.save_vault_raw(self.current_user, data)
+
+                # 3. CRITICAL: Re-load the vault object from the new file into memory
+                self.vault = storage.load_vault(self.current_user, self.master_password)
+
+                # 4. Update the UI table
+                self.refresh_tree()
+                messagebox.showinfo("Refresh", "Vault updated from cloud!")
+            else:
+                messagebox.showwarning("Refresh", "No data found on server.")
+        except Exception as e:
+            messagebox.showerror("Refresh Error", f"Could not sync from server: {e}")
 
     def add_entry_window(self):
         # Implementation similar to your old code, but calling self.vault.add_entry
