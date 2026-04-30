@@ -157,7 +157,7 @@ class SafePassApp:
                     password=self.master_password,
                     data=user_path.read_bytes()
                 )
-                if res == "OK":
+                if res and res.strip() == "OK":
                     messagebox.showinfo("Sync", "Vault uploaded to cloud successfully!")
                 else:
                     messagebox.showerror("Sync Error", "Server failed to save the vault.")
