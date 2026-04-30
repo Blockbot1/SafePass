@@ -5,33 +5,15 @@ SERVER_HOST = "192.168.24.129"
 SERVER_PORT = 9090
 
 
+def send_frame(s, data):
+    # Send the length of the data first (4 bytes), then the data
+    s.sendall(len(data).to_bytes(4, "big") + data)
+
 def server_request(action, username, password="", data=None):
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((SERVER_HOST, SERVER_PORT))
-            header = {"action": action, "user": username, "password": password}
-            if data: header["size"] = len(data)
+    # ... setup socket ...
+    header = json.dumps({"action": action, "user": username, "password": password}).encode()
+    send_frame(s, header) # Use a frame for the header
 
-            s.sendall(json.dumps(header).encode("utf-8"))
-
-            if action == "upload" and data:
-                s.sendall(data)
-                return s.recv(1024).decode()
-
-            if action == "download":
-                size_line = b""
-                while not size_line.endswith(b"\n"):
-                    chunk = s.recv(1)
-                    if not chunk: break
-                    size_line += chunk
-                size = int(size_line.decode().strip())
-                if size == 0: return None
-                received = b""
-                while len(received) < size:
-                    chunk = s.recv(min(4096, size - len(received)))
-                    received += chunk
-                return received
-
-            return s.recv(1024).decode()
-    except:
-        return "ERROR"
+    if action == "upload" and data:
+        send_frame(s, data) # Use a frame for the vault data
+    # ...

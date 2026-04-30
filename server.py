@@ -103,6 +103,20 @@ def handle_client(conn, addr):
         print(f"Error: {e}")
 
 
+def recv_exact(conn, n):
+    buf = b""
+    while len(buf) < n:
+        chunk = conn.recv(n - len(buf))
+        if not chunk: raise ConnectionError("Connection lost")
+        buf += chunk
+    return buf
+
+def recv_frame(conn):
+    # Read the 4-byte header to know how much data is coming
+    hdr = recv_exact(conn, 4)
+    length = int.from_bytes(hdr, "big")
+    return recv_exact(conn, length)
+
 if __name__ == "__main__":
     init_db()
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
