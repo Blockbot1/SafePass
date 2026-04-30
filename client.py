@@ -1,7 +1,7 @@
 import socket
 import json
 
-SERVER_HOST = "0.0.0.0"
+SERVER_HOST = "192.168.24.129"
 SERVER_PORT = 9090
 
 
