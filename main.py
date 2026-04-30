@@ -159,8 +159,7 @@ class SafePassApp:
                 )
                 if res and res.strip() == "OK":
                     messagebox.showinfo("Sync", "Vault uploaded to cloud successfully!")
-                else:
-                    messagebox.showerror("Sync Error", "Server failed to save the vault.")
+
         except Exception as e:
             messagebox.showerror("Sync Error", f"Failed to upload: {e}")
 
