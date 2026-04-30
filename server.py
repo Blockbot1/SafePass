@@ -24,9 +24,11 @@ def hash_password(password):
 def handle_client(conn, addr):
     try:
         with conn:
-            header_data = conn.recv(4096).decode("utf-8")
-            if not header_data: return
-            request = json.loads(header_data)
+            header_bytes = recv_frame(conn)
+
+            if not header_bytes: return
+
+            request = json.loads(header_bytes.decode("utf-8"))
             action = request.get("action")
             username = request.get("user")
             pwd = request.get("password")
@@ -53,41 +55,34 @@ def handle_client(conn, addr):
                         conn.sendall(b"FAIL")
 
 
+
                 elif action == "upload":
 
                     try:
 
-                        size = int(request.get("size", 0))
+                        # Use the new helper function to get the vault data
 
-                        received = b""
+                        # This automatically reads the length prefix first
 
-                        # Use a timeout so the server doesn't hang if the client stops
+                        received = recv_frame(conn)
 
-                        conn.settimeout(5.0)
+                        if received:
 
-                        while len(received) < size:
+                            # Save the bytes to the user's specific vault file
 
-                            chunk = conn.recv(min(4096, size - len(received)))
+                            (VAULTS_DIR / f"{username}.vault").write_bytes(received)[cite: 3]
 
-                            if not chunk: break
+                            conn.sendall(b"OK")[cite: 3]
 
-                            received += chunk
+                            print(f"[SUCCESS] Vault updated for {username}")
 
-                        # Ensure the directory exists right before writing test
+                        else:
 
-                        VAULTS_DIR.mkdir(exist_ok=True)
-
-                        save_path = VAULTS_DIR / f"{username}.vault"
-
-                        save_path.write_bytes(received)
-
-                        print(f"Successfully saved vault for {username}")
-
-                        conn.sendall(b"OK")
+                            conn.sendall(b"ERROR: Empty Data")
 
                     except Exception as e:
 
-                        print(f"Upload write error: {e}")
+                        print(f"[ERROR] Upload failed: {e}")
 
                         conn.sendall(b"ERROR")
 

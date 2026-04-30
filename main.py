@@ -197,8 +197,8 @@ class SafePassApp:
         res = client.server_request(
             action="upload",
             username=self.current_user,
-            password=self.master_password,
-            data=user_path.read_bytes()
+            password=self.master_password,  # Ensure this is passed
+            data=path.read_bytes()
         )
 
     def refresh_vault(self):
