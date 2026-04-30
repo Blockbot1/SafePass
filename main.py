@@ -177,6 +177,7 @@ class SafePassApp:
             print(f"Error during sync: {e}")
 
     def sync_vault(self):
+
         """Uploads the current local state to the server."""
         try:
             # 1. Save current memory state to local disk first
@@ -193,6 +194,12 @@ class SafePassApp:
                     messagebox.showerror("Sync Error", "Server failed to save the vault.")
         except Exception as e:
             messagebox.showerror("Sync Error", f"Failed to upload: {e}")
+        res = client.server_request(
+            action="upload",
+            username=self.current_user,
+            password=self.master_password,
+            data=user_path.read_bytes()
+        )
 
     def refresh_vault(self):
         """Downloads the latest version from server and RE-LOADS the UI."""

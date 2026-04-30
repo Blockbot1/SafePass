@@ -52,15 +52,44 @@ def handle_client(conn, addr):
                     else:
                         conn.sendall(b"FAIL")
 
+
                 elif action == "upload":
-                    size = int(request.get("size", 0))
-                    received = b""
-                    while len(received) < size:
-                        chunk = conn.recv(min(4096, size - len(received)))
-                        if not chunk: break
-                        received += chunk
-                    (VAULTS_DIR / f"{username}.vault").write_bytes(received)
-                    conn.sendall(b"OK")
+
+                    try:
+
+                        size = int(request.get("size", 0))
+
+                        received = b""
+
+                        # Use a timeout so the server doesn't hang if the client stops
+
+                        conn.settimeout(5.0)
+
+                        while len(received) < size:
+
+                            chunk = conn.recv(min(4096, size - len(received)))
+
+                            if not chunk: break
+
+                            received += chunk
+
+                        # Ensure the directory exists right before writing
+
+                        VAULTS_DIR.mkdir(exist_ok=True)
+
+                        save_path = VAULTS_DIR / f"{username}.vault"
+
+                        save_path.write_bytes(received)
+
+                        print(f"Successfully saved vault for {username}")
+
+                        conn.sendall(b"OK")
+
+                    except Exception as e:
+
+                        print(f"Upload write error: {e}")
+
+                        conn.sendall(b"ERROR")
 
                 elif action == "download":
                     user_file = VAULTS_DIR / f"{username}.vault"
